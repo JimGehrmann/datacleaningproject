@@ -1,0 +1,77 @@
+##Set directory to source data
+setwd("C://Users//Jim//Documents//OnlineCourses//JohnsHopkinsDataCleaning2015//getdata-projectfiles-UCI HAR Dataset//UCI HAR Dataset")
+
+##Read training data results
+xtraindat<-read.table("train//X_train.txt",colClasses = "numeric")
+
+##Read test data results
+xtestdat<-read.table("test//X_test.txt",colClasses = "numeric")
+
+##read Variable names for training and testdata
+##created featuresed.txt by removing commas from features.txt
+##so number of varible names is read correctly
+varnamesboth<-read.csv("featuresed.txt",header=FALSE,as.character())
+
+##concatenate training and test data
+alldat<-rbind(xtraindat,xtestdat)
+
+##add Variable (column) names to alldat--Project point 4
+colnames(alldat)<-as.character(varnamesboth[,2])
+
+
+
+##read id numbers for training Subjects, rename column, and add Group
+trainSubjects<-read.table("train//Subject_train.txt",colClasses = "numeric")
+names(trainSubjects)[names(trainSubjects)=="V1"]<-"Subject"
+trainSubjects$Group<-rep(1,nrow(trainSubjects))
+trainSubjects<-trainSubjects[c(2,1)]
+
+##read Activity numbers for tranining Subjects, rename column
+trainActivity<-read.table("train//y_train.txt",colClasses = "numeric")
+names(trainActivity)[names(trainActivity)=="V1"]<-"Activity"
+
+##concatenate results for training data frame
+trainset<-cbind(trainSubjects,trainActivity)
+
+
+
+##read id numbers for test Subjects, rename column, and add Group
+testSubjects<-read.table("test//Subject_test.txt",colClasses = "numeric")
+names(testSubjects)[names(testSubjects)=="V1"]<-"Subject"
+testSubjects$Group<-rep(2,nrow(testSubjects))
+testSubjects<-testSubjects[c(2,1)]
+
+##read Activity numbers for test Subjects, rename column
+testActivity<-read.table("test//y_test.txt",colClasses = "numeric")
+names(testActivity)[names(testActivity)=="V1"]<-"Activity"
+
+##concatenate results for training data frame
+testset<-cbind(testSubjects,testActivity)
+
+##concatenate training set and test set
+allinfo<-rbind(trainset,testset)
+
+#Merge the trainind and test sets--Project point 1
+alldat<-cbind(allinfo,alldat)
+
+##Extracts only measurements on mean and standard deviation--Project point 2
+onlymeanstdstuff<-alldat[,grep("mean()|std()", names(alldat), value=TRUE)]
+
+
+##To prepare for Project point 5 combine columwise Group, Subject, and Activity number
+##with the extracted mean and standard deviation data columns
+onlymeanstdstuffwithpeopleactive<-cbind(allinfo,onlymeanstdstuff)
+
+##Provide labels for activities--Project point 3
+onlymeanstdstuffwithpeopleactive$Activity<-factor(onlymeanstdstuffwithpeopleactive$Activity,levels=c(1,2,3,4,5,6),labels=c("Walking","Walking Upstairs","Walking Downstairs","Sitting","Standing","Laying"))
+onlymeanstdstuffwithpeopleactive$Group<-factor(onlymeanstdstuffwithpeopleactive$Group,levels=c(1,2),labels=c("Training","Test"))
+
+##Project Point 5
+library(plyr)
+library(reshape2)
+melted<-melt(onlymeanstdstuffwithpeopleactive,id.vars=c("Group","Subject","Activity"))
+final<-ddply(melted,c("Subject","Activity","variable"),summarise,mean=mean(value))
+
+##Write output file for submission
+write.table(final,file="jimgehrmannproject.txt",row.names=FALSE)
+
